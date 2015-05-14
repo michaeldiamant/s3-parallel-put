@@ -39,6 +39,7 @@ import sys
 import tarfile
 import time
 import mimetypes
+import os
 
 from boto.s3.connection import S3Connection
 from boto.s3.acl import CannedACLStrings
@@ -264,6 +265,18 @@ def putter(put, put_queue, stat_queue, options):
                 logger.info('%s %s> %s' % (
                     value.path, 'z' if should_gzip else '-', key.name))
                 stat_queue.put(dict(size=value.get_size()))
+                # key_name is the combination of filename and --prefix.  For 
+                # example: 
+                # --prefix=inbound-requests/2015/05/14/11
+                # filename is '94929249-inbound-requests.log'
+                # key_name = inbound-requests/2015/05/14/11/94929249-inbound-requests.log
+                # 
+                # Below invocation of rfind and substring will return: 
+                # 94929249-inbound-requests.log
+                #
+                # This logic assumes there is a prefix provided.  Without a 
+                # prefix, this logic will fail.
+                os.remove(key_name[key_name.rfind('/') + 1:])
             else:
                 logger.info('skipping %s -> %s' % (value.path, key_name))
         except SSLError as exc:
